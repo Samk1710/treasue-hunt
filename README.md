@@ -1,188 +1,163 @@
-🌌 Ophiuchus: The 13th Zodiac of Songs
 
-“Written in the stars. Heard in your soul.”
+# 🌌 Ophiuchus: The 13th Zodiac of Songs
 
-🎮 Game Concept Summary
 
-Ophiuchus is a single-player, celestial-themed musical quest powered by the user’s Spotify data. The player embarks on a journey through 5 cosmic rooms, each designed to test their intuition, memory, and emotional understanding of music they already love. Clues from each room help the player uncover their hidden “Cosmic Song” — a main track secretly chosen from their listening history.
+A personalized music deduction game powered by Spotify OAuth, Google Gemini 2.5 Flash for intelligence and narrative, real-time TTS audio generation, and MongoDB session persistence.
+Players explore four interactive rooms to collect clues and identify a hidden Cosmic Song derived from their own Spotify listening history.
 
-🌠 Game Flow
-1. Login & Initiation: The Big Bang
+## Technical Architecture
 
-User logs in via Spotify.
+### Core Stack
 
-LLM chooses 1 “Cosmic Song” from their data (e.g., You Belong With Me – Taylor Swift).
+* Framework: Next.js 14 (App Router, Server Actions, API Routes)
+* Language: TypeScript
+* Authentication: Spotify OAuth 2.0 via NextAuth.js
+* Music Data: Spotify Web API (top tracks, saved tracks, recently played, audio features)
+* AI Services: Google Gemini 2.5 Flash
 
-A poetic, one-liner clue is shown:
+  * Text generation for riddles and scoring
+  * Flash Preview TTS for emotional audio scenes
+* Database: MongoDB with Mongoose ODM
+* Media Storage: Cloudinary for audio files
+* Audio Processing: PCM-to-WAV conversion pipeline for serverless compatibility
+* Deployment: Serverless functions on Vercel
 
-"She stood on the bleachers while love climbed rooftops without her."
+---
 
-User is transported to the Astral Nexus, a celestial map of 5 glowing planets (rooms).
+## Game Flow
 
-🪐 Room Overview
+### Phase 1 — Big Bang Initialization
 
-The player can explore five rooms in any order. Each room provides a unique clue — lyrical, emotional, visual, or logical — to help them guess the Cosmic Song.
+Triggered after Spotify login.
 
-1. 🌫️ Nebula — Riddle of Echoes
+Backend processing:
 
-Tagline: “Where whispers shape your stars.”
+1. Token refresh and session validation handled by NextAuth
+2. Concurrent Spotify API requests gather player music behavior
+3. Weighted scoring combines recency and frequency of listens
+4. Selection algorithm chooses:
 
-A poetic riddle is generated about an intermediary song from user data.
+   * One Cosmic Song
+   * Two Intermediary Songs for room clues
+5. Gemini generates a cryptic opening hint
+6. Full session state stored in MongoDB
 
-Sunsetz – Cigarettes After Sex
+Performance target: Under seven seconds from login to game start.
 
-🧩 Example Riddle:
+---
 
-You talk to her in languages I’ve memorized,
-but she never reads between your lines.
-I wear comfort like a second skin,
-while she walks in heels you’ll never fit in.
-You call it friendship —
-but I’ve been screaming quietly:
-You were always meant for me.
+## Room Systems
 
-Which song am I, written in the margins of a love that never looked up?
+### Nebula — Riddle of Echoes
 
-3 guesses allowed.
+Interpretive deduction gameplay.
 
-Correct guess = reward: poetic riddle of the Cosmic Song.
+Technical details:
 
-Failure = misleading lyric clue.
+* Gemini produces a poetic riddle describing an Intermediary Song
+* Spotify Track ID check ensures accurate guessing
+* Limited attempts enforced via MongoDB atomic writes
+* Successful guesses unlock a thematic clue toward the Cosmic Song
 
-2. 🌍 Cradle — The Veiled Origin
+---
 
-Tagline: “What was born of Earth must be uncovered in shadow.”
+### Cradle — The Veiled Origin
 
-Player receives a poetic identity clue about the main artist:
+Artist-focused questioning and reasoning.
 
-“She writes with glitter and burns with folklore. She was once 15, and now she haunts her own eras.”
+Technical details:
 
-Unlimited Gandalf-style questions to guess the artist.
+* Gemini responses drawn strictly from verified Spotify metadata
+* Prompt rules prevent exposing artist name directly
+* Final guess validated through normalized string comparison
+* Rewards a deeper artist-linked clue
 
-LLM never reveals artist directly but will respond with:
+---
 
-“They have 12 Grammys.”
+### Comet — Flash of the Past
 
-“They began in country music.”
+Memory-based challenge with time pressure.
 
-“Yes, she’s collaborated with Bon Iver.”
+Technical details:
 
-When confident, the player enters a guess for the artist.
+* Lyric snippet shown briefly on screen (ten seconds)
+* One guess attempt validated against Spotify IDs
+* AI fallback generates stylistically accurate lyric if needed
+* Correct guess yields a partial lyric clue from the Cosmic Song
 
-3. ☄️ Comet — Flash of the Past
+---
 
-Tagline: “Catch the lyric before it burns out.”
+### Aurora — The Voice of Light
 
-A lyric from another intermediary song flashes across screen for 10 seconds.
+Emotional song inference using audio-driven clues.
 
-“I still remember, third of December.”
-(Heather – Conan Gray)
+Technical details:
 
-Correct guess = reward: lyric from the main song.
+* Gemini creates a short emotional narrative scene
+* Scene synthesized to WAV and uploaded to Cloudinary
+* URL cached in MongoDB to prevent regeneration
+* Player guesses a song based on emotional tone
+* Gemini evaluates emotional similarity on a numeric scale
+* High score unlocks a mood-based clue for the Cosmic Song
 
-Failure = comet fades, no reward.
+---
 
-4. 🌖 Aurora — The Voice of Light
+## Authentication and Session Management
 
-Tagline: “Feel the emotion. Find the harmony.”
+* Spotify OAuth handled via NextAuth with automatic token refresh
+* JWT used for server-side session validation
+* MongoDB stores room progression, scores, and audio references
+* Atomic operations ensure consistency during rapid interactions
 
-Gemini API generates an emotional audio vignette (no emotion is mentioned).
+---
 
-Ex: A girl bashfully narrates how someone remembered her favorite song on a late night drive.
+## Spotify Integration Strategy
 
-Player suggests a song matching the vibe.
+Primary data sources:
 
-“Enchanted” – Taylor Swift
+* Saved songs
+* Recently played tracks
+* Medium-term top tracks
+* Audio feature embeddings
+* Artist metadata including genres and popularity
 
-LLM scores it 1–10:
+Derived analytics:
 
-7+ = grant a mood-aligned clue for the main song.
+* Listening frequency weighting
+* Emotional profile clustering (valence, energy, danceability)
+* User mood and genre patterns
 
-<7 = no reward.
+Used to ensure clue relevance and difficulty balance.
 
-5. 🌌 Nova — The Reverb of Memory
+---
 
-Tagline: “Only memory can unlock the cosmic hum.”
+## Engineering Highlights
 
-A personal memory round with 5 Spotify-based questions:
+* Integrated text and audio generation with Gemini
+* Emotional similarity scoring for accurate song-matching gameplay
+* Cloud-hosted TTS audio with global performance optimization
+* Weighted selection algorithm ensures Cosmic Song is personally meaningful
+* Time-bound interactions enforce real challenge dynamics
+* Minimal storage of playback data for strict privacy compliance
+* Serverless infrastructure supports scaling without configuration
+* Adaptive clue generation aligns difficulty with player performance
 
-🎧 Sample Questions:
+---
 
-Which artist have you streamed the most recently?
+## Future Plans
 
-What genre dominated your past week’s listening?
+* Faster clue generation through speculative prefetching
+* Spotify Web Playback SDK for in-game audio
+* Analytics-driven calibration of difficulty levels
+* Mobile and voice-driven input features
+* Synchronized multiplayer game mode
 
-What time of day do you usually play music?
+---
 
-Complete the lyric: “I remember you driving to my house in the ___.”
+## License
 
-Which of these was NOT in your recently played songs?
+MIT Licensed. Free to use and modify.
 
-Scoring:
+---
 
-5 correct = humming or muffled chorus of main song
 
-4 correct = fragmented reversed audio
-
-3 correct = encrypted lyric
-
-<3 = genre hint or mood cue only
-
-🌟 Final Phase: Ascension of the Song
-
-After visiting at least 3 rooms, user unlocks the Final Portal.
-
-Can submit 2 guesses for their Cosmic Song.
-
-✅ Correct Guess:
-
-Ascension animation plays.
-
-A custom Ophiuchus Zodiac Identity is generated:
-
-“Ophiuchus of the Quiet Chorus — a soul born of friendship’s echo, craving visibility through melody.”
-
-Shareable NFT-style badge generated.
-
-❌ Wrong Guess:
-
-Retry allowed. If failed twice:
-
-“The constellations remain silent. Return when the sky aligns once more.”
-
-🔧 Tech Backbone
-Layer	Tech
-Frontend	Next.js + Tailwind + Framer Motion
-Backend	Node.js / Elixir
-AI Layer	GPT-4o / Gemini for riddles, scoring
-Audio	Gemini TTS or Google Cloud Voice
-Spotify	OAuth + Web API
-DB	MongoDB / Firestore
-NFT/Badge (optional)	IPFS + Polygon
-🧭 Thematic Aesthetic
-
-Aurora Borealis palette (lavender, teal, indigo, rose)
-
-Celestial UI with glowing rings, soft star motion, zodiac glyphs
-
-Elegant typography:
-
-Headings: “Cormorant Garamond”, “Cinzel”
-
-Body: “Inter”, “Poppins”
-
-Glassmorphic card elements, constellation-hover effects, space music ambiance
-
-🔄 Replayability
-
-Every run features a new Cosmic Song from the user’s top data.
-
-Room clues evolve per song + emotional model.
-
-Additional features can include:
-
-Weekly Zodiac challenges
-
-Multiplayer duels: “Guess Your Friend’s Song”
-
-Unlockable achievements like “The Riddler” or “Melancholy Voyager”
